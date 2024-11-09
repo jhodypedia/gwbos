@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blockchain Transaction Console</title>
+
+  <!-- Link ke Bootstrap CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Link ke Toastr CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+
+  <!-- Custom Styles -->
+  <style>
+    /* Background */
+    body {
+      background: #0f1c2d;
+      color: white;
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: auto; /* Memungkinkan halaman untuk di-scroll */
+      display: flex;
+      justify-content: center; /* Menempatkan elemen secara horizontal (di sumbu X) */
+      align-items: center; /* Menempatkan elemen secara vertikal (di sumbu Y) */
+      flex-direction: column; /* Pastikan konten diatur secara kolom */
+    }
+
+    /* Animasi dan Transisi */
+    .card {
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Bayangan lebih ringan */
+      background-color: rgba(0, 0, 0, 0.6); /* Sedikit transparan */
+      margin-top: 20px;
+      padding: 20px; /* Padding lebih kecil */
+      transition: transform 0.3s ease; /* Mengurangi animasi */
+      max-width: 500px; /* Maksimal ukuran card */
+      width: 100%; /* Card mengambil 100% lebar pada perangkat mobile */
+    }
+
+    .card:hover {
+      transform: scale(1.05); /* Efek zoom saat hover */
+    }
+
+    .card-header {
+      background-color: #333;
+      color: #fff;
+      font-size: 1.2em;
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+      text-align: center;
+      padding: 15px;
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    /* Button */
+    .btn {
+      padding: 10px 20px;
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+      font-weight: bold;
+    }
+
+    .btn:hover {
+      background-color: #0056b3;
+      transform: scale(1.05); /* Sedikit efek zoom */
+    }
+
+    /* Toastr */
+    #toastr-container {
+      z-index: 9999;
+    }
+
+    /* Custom font for wallet address */
+    #walletAddress {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1.2em;
+      word-wrap: break-word; /* Prevent long addresses from overflowing */
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    /* Loading animation */
+    .spinner-border {
+      color: #fff;
+    }
+
+    /* Animasi Partikel */
+    #particles-js {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1; /* Behind the main content */
+    }
+
+    /* Form Styling */
+    form input,
+    form button {
+      margin-bottom: 15px;
+    }
+
+    /* Console output */
+    #consoleOutput {
+      font-family: 'Courier New', Courier, monospace;
+      white-space: pre-wrap; /* Preserve line breaks */
+      font-size: 0.9em;
+      color: #f0f0f0;
+      background-color: #333;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      height: 200px;
+      overflow-y: scroll; /* Untuk scroll console */
+    }
+
+    /* Layout Flexbox */
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+      flex-wrap: wrap; /* Card akan turun jika layar kecil */
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    /* Card Console */
+    #consoleCard {
+      display: none;
+      flex: 1;
+      max-width: 500px;
+    }
+
+    /* Responsive Design for mobile */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+        align-items: center;
+      }
+      .card {
+        width: 100%; /* Card akan memenuhi lebar layar */
+      }
+      #consoleCard {
+        display: block; /* Menampilkan card console pada mobile */
+        margin-top: 20px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Partikel untuk background -->
+  <div id="particles-js"></div>
+
+  <!-- Container untuk card form dan card console -->
+  <div class="container">
+    <!-- Card untuk form input -->
+    <div class="card">
+      <h2 class="text-center mb-4">Blockchain Transaction Console</h2>
+
+      <!-- Input Mnemonic -->
+      <div class="input-section">
+        <label for="mnemonic">Masukkan Mnemonic (12 kata):</label>
+        <input type="text" id="mnemonic" class="form-control" placeholder="Contoh: say aware discuss link..." required>
+      </div>
+
+      <!-- Input Network -->
+      <div class="input-section">
+        <label for="network">Pilih Jaringan:</label>
+        <select id="network" class="form-control">
+          <option value="ethereum">Ethereum</option>
+          <option value="bsc">BSC</option>
+          <option value="polygon">Polygon</option>
+          <option value="solana">Solana</option>
+        </select>
+      </div>
+
+      <!-- Input Alamat Penerima -->
+      <div class="input-section">
+        <label for="toAddress">Masukkan Alamat Penerima:</label>
+        <input type="text" id="toAddress" class="form-control" placeholder="Alamat penerima" required>
+      </div>
+
+      <!-- Button Kirim Transaksi -->
+      <button id="sendTransactionBtn" class="btn btn-primary btn-block mt-3">Kirim Transaksi</button>
+
+    </div>
+
+    <!-- Card untuk Console Output -->
+    <div class="card" id="consoleCard">
+      <div class="card-header">
+        <h5 class="text-center">Console Log</h5>
+      </div>
+      <div class="card-body">
+        <div class="console-output" id="consoleOutput">
+          <!-- Output log akan muncul di sini -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script untuk Bootstrap, jQuery, Toastr dan Ethers -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
+  <script>
+    // Inisialisasi Partikel untuk background
+    particlesJS("particles-js", {
+      particles: {
+        number: {
+          value: 100,
+          density: {
+            enable: true,
+            value_area: 800
+          }
+        },
+        color: {
+          value: "#ffffff"
+        },
+        shape: {
+          type: "circle",
+          stroke: {
+            width: 0,
+            color: "#ffffff"
+          }
+        },
+        opacity: {
+          value: 0.5,
+          random: true,
+          anim: {
+            enable: true,
+            speed: 1,
+            opacity_min: 0.1,
+            sync: false
+          }
+        },
+        size: {
+          value: 3,
+          random: true,
+          anim: {
+            enable: true,
+            speed: 40,
+            size_min: 0.1,
+            sync: false
+          }
+        },
+        line_linked: {
+          enable: true,
+          distance: 150,
+          color: "#ffffff",
+          opacity: 0.4,
+          width: 1
+        },
+        move: {
+          enable: true,
+          speed: 6,
+          direction: "none",
+          random: true,
+          straight: false,
+          out_mode: "out",
+          bounce: false,
+          attract: {
+            enable: false
+          }
+        }
+      },
+      interactivity: {
+        detect_on: "canvas",
+        events: {
+          onhover: {
+            enable: true,
+            mode: "grab"
+          },
+          onclick: {
+            enable: true,
+            mode: "push"
+          }
+        }
+      },
+      retina_detect: true
+    });
+
+    $(document).ready(function() {
+      // Button untuk mengirim transaksi
+      $("#sendTransactionBtn").click(function() {
+        const mnemonic = $("#mnemonic").val().trim();
+        const network = $("#network").val();
+        const toAddress = $("#toAddress").val().trim();
+
+        // Validasi input
+        if (!mnemonic || !toAddress) {
+          toastr.error("Mnemonic dan alamat penerima harus diisi!");
+          return;
+        }
+
+        logToConsole(`Mengirim transaksi ke jaringan: ${network}`);
+        logToConsole(`Penerima: ${toAddress}`);
+
+        // Kirim request ke backend
+        $.ajax({
+          url: '/send-transaction',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({ mnemonic, network, toAddress }),
+          success: function(response) {
+            toastr.success("Transaksi berhasil: " + response.result);
+            logToConsole("Transaksi berhasil!");
+          },
+          error: function(xhr, status, error) {
+            toastr.error("Error: " + xhr.responseJSON.error);
+            logToConsole("Terjadi kesalahan!");
+          }
+        });
+      });
+
+      function logToConsole(message) {
+        const consoleOutput = $("#consoleOutput");
+        consoleOutput.append(message + "\n");
+        consoleOutput.scrollTop(consoleOutput[0].scrollHeight); // Scroll ke bawah otomatis
+      }
+    });
+  </script>
+
+</body>
+</html>
